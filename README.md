@@ -4,31 +4,43 @@ Sistema gerenciador de torneios de Trading Card Games (TCG), focado na automatiz
 
 ## 📋 Sobre o Projeto
 
-Este projeto visa facilitar a organização de eventos de jogos de cartas em lojas locais (LGS), substituindo planilhas manuais e softwares obsoletos. A arquitetura é baseada em microsserviços containerizados, com foco inicial na robustez do banco de dados relacional.
+Este projeto visa facilitar a organização de eventos de jogos de cartas em lojas locais (LGS), substituindo planilhas manuais e softwares obsoletos. A arquitetura é baseada em microsserviços e módulos bem definidos, utilizando uma stack moderna e robusta.
 
-### Funcionalidades Principais (Backend/DB)
+### Funcionalidades Principais
 * **Gestão de Usuários:** Controle de jogadores e administradores (Juízes/Staff).
 * **Gestão de Torneios:** Criação de eventos com suporte a taxas de inscrição e formatos variados.
-* **Financeiro (Integração PIX):** Tabela dedicada para controle de pagamentos e status de inscrição.
+* **Financeiro (Integração PIX):** Controle de pagamentos e status de inscrição.
 * **Gestão de Mesas:** Controle físico das mesas da loja e sua disponibilidade.
-* **Pareamento (Matchmaking):** Estrutura pronta para suporte a WebSocket, com controle de tempo de rodada (`start_time`/`end_time`) e alocação automática de mesas.
+* **Pareamento (Matchmaking):** Estrutura preparada para WebSocket e alocação automática.
 
 ## 🛠 Tecnologias
 
-* **Banco de Dados:** PostgreSQL 16+
-* **Infraestrutura:** Docker & Docker Compose
-* **Modelagem:** DBeaver
-* **Editor de Código:** VS Code
+### Banco de Dados
+* **PostgreSQL 16+** (via Docker)
+* **DBeaver** (Modelagem e Scripts)
+
+### Backend (API)
+* **Framework:** NestJS (Node.js)
+* **Linguagem:** TypeScript
+* **ORM:** TypeORM (Abordagem *Database First*)
+* **Gerenciador de Pacotes:** npm
+* **Segurança:** Variáveis de ambiente com `@nestjs/config`
 
 ## 🚀 Configuração do Ambiente
 
 ### Pré-requisitos
 * [Docker](https://www.docker.com/) instalado e rodando.
-* [Git](https://git-scm.com/) instalado.
+* [Node.js](https://nodejs.org/) (v18+) instalado.
+* [NestJS CLI](https://docs.nestjs.com/) instalado globalmente (`npm i -g @nestjs/cli`).
 
-### 1. Clonar o Repositório
+### 1. Banco de Dados (Docker)
+
+Suba o container do banco de dados com as credenciais configuradas:
 
 ```bash
-git init
-# (Adicione a remote url se houver)
-
+docker run --name projeto-db \
+  -e POSTGRES_USER=docker \
+  -e POSTGRES_PASSWORD=docker \
+  -e POSTGRES_DB=reservas_db \
+  -p 5432:5432 \
+  -d postgres
