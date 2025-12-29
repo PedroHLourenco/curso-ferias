@@ -21,8 +21,7 @@ CREATE TABLE
 CREATE TABLE
     game_tables (
         id SERIAL PRIMARY KEY,
-        table_name VARCHAR(100) NOT NULL,
-        location_info VARCHAR(100),
+        table_number INTEGER NOT NULL UNIQUE,
         table_status VARCHAR(100) DEFAULT 'available'
     );
 
