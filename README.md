@@ -2,7 +2,7 @@
 
 Sistema gerenciador de torneios de Trading Card Games (TCG), focado na automatização de pareamentos, gestão de mesas e controle financeiro via PIX.
 
-## 📋 Sobre o Projeto
+## Sobre o Projeto
 
 Este projeto visa facilitar a organização de eventos de jogos de cartas em lojas locais (LGS), substituindo planilhas manuais e softwares obsoletos. A arquitetura é baseada em microsserviços e módulos bem definidos, utilizando uma stack moderna e robusta.
 
@@ -11,21 +11,35 @@ Este projeto visa facilitar a organização de eventos de jogos de cartas em loj
 - **Gestão de Usuários:** Controle de jogadores e administradores com criptografia de senhas.
 - **Autenticação Segura:** Login via Token JWT (Stateless) e proteção de rotas por cargo (RBAC).
 - **Gestão de Torneios:** Criação de eventos com suporte a taxas de inscrição e formatos variados.
-- **Financeiro (Integração PIX):** Controle de pagamentos e status de inscrição.
+- **Inscrições & Vagas (Registrations):** - Controle automático de capacidade do torneio (`maxPlayers`).
+  - Prevenção de inscrições duplicadas.
+  - Relacionamento N:N (Muitos Jogadores em Muitos Torneios).
+- **Financeiro (Integração PIX):** - Geração automática de QR Code e código "Copia e Cola" via **API do Mercado Pago**.
+  - Persistência de IDs de transação externa e status de pagamento.
 - **Gestão de Mesas:** Controle físico das mesas da loja e sua disponibilidade.
-- **Pareamento (Matchmaking):** Estrutura preparada para WebSocket e alocação automática.
 
-## 🔐 Módulo de Autenticação (Decisões Arquiteturais)
+## Módulo de Autenticação (Decisões Arquiteturais)
 
 O sistema de segurança foi projetado para ser modular e escalável, evitando sessões em servidor (stateless).
 
-- **Passport.js (@nestjs/passport):** Escolhido pela modularidade. Permite implementar "Estratégias" isoladas. São utilizadas:
-  - **Local Strategy:** Para validar email/senha no momento do login.
-  - **JWT Strategy:** Para proteger rotas privadas, validando o token no Header `Authorization`.
-- **JWT (JSON Web Token):** Garante que o backend não precise armazenar sessões em memória, facilitando a comunicação futura com o frontend.
-- **Bcrypt:** Utilizado para hashing unidirecional de senhas antes da persistência no banco. Nenhuma senha é salva em texto puro.
+- **Passport.js (@nestjs/passport):** Escolhido pela modularidade. Permite implementar "Estratégias" isoladas:
+  - **Local Strategy:** Validação de email/senha.
+  - **JWT Strategy:** Proteção de rotas privadas via Header `Authorization`.
+- **Bcrypt:** Hashing de senhas antes da persistência.
 
-## 🛠 Tecnologias
+## Módulo de Pagamentos (Integração Externa)
+
+A aplicação se comunica diretamente com gateways de pagamento para automatizar a cobrança de inscrições.
+
+- **Provedor:** Mercado Pago (API v1).
+- **Tecnologia:** `Axios` para requisições HTTP e tratamento de respostas externas.
+- **Fluxo:** Ao criar uma inscrição (`POST /registrations`), o backend:
+  1. Valida regras de negócio (vagas, existência do usuário).
+  2. Solicita um pagamento PIX à API do Mercado Pago.
+  3. Retorna o QR Code e o Código Copia e Cola diretamente para o Frontend.
+- **Segurança:** As credenciais (`ACCESS_TOKEN`) são gerenciadas via variáveis de ambiente, nunca expostas no código.
+
+## Tecnologias
 
 ### Banco de Dados
 
@@ -36,12 +50,12 @@ O sistema de segurança foi projetado para ser modular e escalável, evitando se
 
 - **Framework:** NestJS (Node.js)
 - **Linguagem:** TypeScript
-- **ORM:** TypeORM (Abordagem _Database First_)
+- **ORM:** TypeORM (Database First / Relational Mapping)
 - **Segurança:** Passport.js, JWT, Bcrypt
-- **Gerenciador de Pacotes:** npm
-- **Configuração:** `@nestjs/config` (Variáveis de ambiente)
+- **HTTP Client:** Axios (Integrações Externas)
+- **Configuração:** `@nestjs/config` (Dotenv)
 
-## 🚀 Configuração do Ambiente
+## Configuração do Ambiente
 
 ### Pré-requisitos
 

@@ -1,6 +1,8 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { CreateRegistrationDto } from './dto/create-registration.dto';
@@ -10,14 +12,18 @@ import { Registration } from './entities/registration.entity';
 import { Repository } from 'typeorm';
 import { UsersService } from 'src/users/users.service';
 import { TournamentsService } from 'src/tournaments/tournaments.service';
+import { PaymentsService } from 'src/payments/payments.service';
 
 @Injectable()
 export class RegistrationsService {
+  private readonly logger = new Logger(RegistrationsService.name);
+
   constructor(
     @InjectRepository(Registration)
     private registrationRepository: Repository<Registration>,
     private usersService: UsersService,
     private tournamentsService: TournamentsService,
+    private paymentsService: PaymentsService,
   ) {}
 
   async create(createRegistrationDto: CreateRegistrationDto) {
@@ -47,14 +53,41 @@ export class RegistrationsService {
       throw new ConflictException('Usuário já está inscrito nesse torneio');
     }
 
+    // integrando com pagamento
+    let paymentData;
+
+    try {
+      paymentData = await this.paymentsService.createpixPayment(
+        Number(tournament.entryFee), // valor da inscrição
+        `Inscrição no torneio: ${tournament.tournamentName}`, // descrição
+        user.email, // email do jogador
+      );
+
+      this.logger.log(`PIX gerado com sucesso: ${paymentData.id}`);
+    } catch (error) {
+      this.logger.error(`Falha ao criar pagamento PIX`);
+
+      throw new BadRequestException(
+        'Não foi possível gerar o pagamento PIX. Tente novamente',
+      );
+    }
+
     const registration = await this.registrationRepository.create({
       user,
       tournament,
       decklist,
-      paymentStatus: 'payment pending',
+      paymentStatus: paymentData.status,
+      paymentRef: paymentData.id.toString(),
     });
 
-    return this.registrationRepository.save(registration);
+    const savedRegistration =
+      await this.registrationRepository.save(registration);
+
+    // retorno para o front
+    return {
+      ...savedRegistration,
+      pix: paymentData,
+    };
   }
 
   findAll() {
