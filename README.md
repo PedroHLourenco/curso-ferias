@@ -2,7 +2,7 @@
 
 Sistema gerenciador de torneios de Trading Card Games (TCG), focado na automatização de pareamentos, gestão de mesas e controle financeiro via PIX.
 
-## Sobre o Projeto
+## 📋 Sobre o Projeto
 
 Este projeto visa facilitar a organização de eventos de jogos de cartas em lojas locais (LGS), substituindo planilhas manuais e softwares obsoletos. A arquitetura é baseada em microsserviços e módulos bem definidos, utilizando uma stack moderna e robusta.
 
@@ -11,61 +11,59 @@ Este projeto visa facilitar a organização de eventos de jogos de cartas em loj
 - **Gestão de Usuários:** Controle de jogadores e administradores com criptografia de senhas.
 - **Autenticação Segura:** Login via Token JWT (Stateless) e proteção de rotas por cargo (RBAC).
 - **Gestão de Torneios:** Criação de eventos com suporte a taxas de inscrição e formatos variados.
-- **Inscrições & Vagas (Registrations):** - Controle automático de capacidade do torneio (`maxPlayers`).
-  - Prevenção de inscrições duplicadas.
-  - Relacionamento N:N (Muitos Jogadores em Muitos Torneios).
-- **Financeiro (Integração PIX):** - Geração automática de QR Code e código "Copia e Cola" via **API do Mercado Pago**.
-  - Persistência de IDs de transação externa e status de pagamento.
+- **Inscrições (Registrations):** Controle de vagas (`maxPlayers`), validação de duplicidade e vínculo financeiro.
+- **Financeiro (Integração PIX):** Geração automática de QR Code e Copia e Cola via API do Mercado Pago.
+- **Gestão de Partidas (Matches):**
+  - Definição de pareamentos (Jogador 1 vs Jogador 2).
+  - Alocação de mesas (`GameTables`).
+  - Report de resultados (Vencedor/Empate) com validação de participantes.
 - **Gestão de Mesas:** Controle físico das mesas da loja e sua disponibilidade.
 
-## Módulo de Autenticação (Decisões Arquiteturais)
+## 🏛 Arquitetura de Dados (Entidades)
 
-O sistema de segurança foi projetado para ser modular e escalável, evitando sessões em servidor (stateless).
+O sistema cumpre o requisito de modelagem relacional robusta com **5 Entidades Principais**:
 
-- **Passport.js (@nestjs/passport):** Escolhido pela modularidade. Permite implementar "Estratégias" isoladas:
-  - **Local Strategy:** Validação de email/senha.
-  - **JWT Strategy:** Proteção de rotas privadas via Header `Authorization`.
-- **Bcrypt:** Hashing de senhas antes da persistência.
+1. **Users:** Atores do sistema (Jogadores e Admins).
+2. **Tournaments:** Os eventos gerenciados.
+3. **GameTables:** Recursos físicos da loja.
+4. **Registrations:** Tabela pivô (N:N) com lógica de pagamento.
+5. **Matches:** O coração do torneio, registrando o histórico de confrontos.
 
-## Módulo de Pagamentos (Integração Externa)
+## 🔐 Módulo de Autenticação
 
-A aplicação se comunica diretamente com gateways de pagamento para automatizar a cobrança de inscrições.
+O sistema de segurança foi projetado para ser modular e escalável:
 
-- **Provedor:** Mercado Pago (API v1).
-- **Tecnologia:** `Axios` para requisições HTTP e tratamento de respostas externas.
-- **Fluxo:** Ao criar uma inscrição (`POST /registrations`), o backend:
-  1. Valida regras de negócio (vagas, existência do usuário).
-  2. Solicita um pagamento PIX à API do Mercado Pago.
-  3. Retorna o QR Code e o Código Copia e Cola diretamente para o Frontend.
-- **Segurança:** As credenciais (`ACCESS_TOKEN`) são gerenciadas via variáveis de ambiente, nunca expostas no código.
+- **Passport.js + JWT:** Estratégia _Stateless_ para proteção de rotas.
+- **Bcrypt:** Hashing unidirecional de senhas.
 
-## Tecnologias
+## 💳 Módulo de Pagamentos (Externo)
+
+Integração direta com o **Mercado Pago API (v1)**:
+
+- Geração de cobranças PIX em tempo real.
+- Uso de ambiente Sandbox (Testes) configurável via `.env`.
+
+## 🛠 Tecnologias
 
 ### Banco de Dados
 
-- **PostgreSQL 16+** (via Docker)
-- **DBeaver** (Modelagem e Scripts)
+- **PostgreSQL 16+** (Docker)
+- **TypeORM** (Gerenciamento de Entidades e Relacionamentos)
 
 ### Backend (API)
 
 - **Framework:** NestJS (Node.js)
 - **Linguagem:** TypeScript
-- **ORM:** TypeORM (Database First / Relational Mapping)
-- **Segurança:** Passport.js, JWT, Bcrypt
-- **HTTP Client:** Axios (Integrações Externas)
-- **Configuração:** `@nestjs/config` (Dotenv)
+- **Validação:** `class-validator` (DTOs)
+- **HTTP Client:** Axios
 
-## Configuração do Ambiente
+## 🚀 Configuração do Ambiente
 
 ### Pré-requisitos
 
-- [Docker](https://www.docker.com/) instalado e rodando.
-- [Node.js](https://nodejs.org/) (v18+) instalado.
-- [NestJS CLI](https://docs.nestjs.com/) instalado globalmente (`npm i -g @nestjs/cli`).
+- [Docker](https://www.docker.com/) e [Node.js](https://nodejs.org/) (v18+).
 
 ### 1. Banco de Dados (Docker)
-
-Suba o container do banco de dados com as credenciais configuradas:
 
 ```bash
 docker run --name projeto-db \
