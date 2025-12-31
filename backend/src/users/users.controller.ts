@@ -8,7 +8,7 @@ import {
   Delete,
   UseGuards,
   Req,
-  NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -48,11 +48,15 @@ export class UsersController {
   ) {
     const user = req.user;
 
-    const isAdmin = user.userRole?.includes('admin');
-    const isSelf = user.id === +id;
+    const idUrl = Number(id);
+
+    const idToken = Number(user.userId || user.id);
+
+    const isAdmin = user.userRole === 'admin';
+    const isSelf = idUrl === idToken;
 
     if (!isAdmin && !isSelf) {
-      throw new NotFoundException(
+      throw new ForbiddenException(
         'Você não pode editar os dados de outro usuário',
       );
     }
