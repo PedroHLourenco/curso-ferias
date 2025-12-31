@@ -13,6 +13,7 @@ import { Repository } from 'typeorm';
 import { UsersService } from 'src/users/users.service';
 import { TournamentsService } from 'src/tournaments/tournaments.service';
 import { PaymentsService } from 'src/payments/payments.service';
+import { EventsGateway } from 'src/events/events.gateway';
 
 @Injectable()
 export class RegistrationsService {
@@ -24,6 +25,7 @@ export class RegistrationsService {
     private usersService: UsersService,
     private tournamentsService: TournamentsService,
     private paymentsService: PaymentsService,
+    private eventsGateway: EventsGateway,
   ) {}
 
   async create(createRegistrationDto: CreateRegistrationDto) {
@@ -82,6 +84,25 @@ export class RegistrationsService {
 
     const savedRegistration =
       await this.registrationRepository.save(registration);
+
+    //websocket
+    try {
+      const tournamentId = createRegistrationDto.tournamentId;
+
+      const count = await this.registrationRepository.count({
+        where: { tournament: { id: tournamentId } },
+      });
+
+      const tournament = await this.tournamentsService.findOne(tournamentId);
+
+      this.eventsGateway.notifyTournamentUpdate(
+        tournamentId,
+        count,
+        tournament.maxPlayers,
+      );
+    } catch (error) {
+      console.error('Erro ao enviar notificação WS:', error);
+    }
 
     // retorno para o front
     return {

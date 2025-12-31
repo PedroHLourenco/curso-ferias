@@ -12,6 +12,7 @@ import { UsersService } from 'src/users/users.service';
 import { TournamentsService } from 'src/tournaments/tournaments.service';
 import { GameTablesService } from 'src/game-tables/game-tables.service';
 import { User } from 'src/users/entities/user.entity';
+import { EventsGateway } from 'src/events/events.gateway';
 
 @Injectable()
 export class MatchesService {
@@ -21,6 +22,7 @@ export class MatchesService {
     private usersService: UsersService,
     private tournamentsService: TournamentsService,
     private gameTablesService: GameTablesService,
+    private eventsGateway: EventsGateway,
   ) {}
 
   async create(createMatchDto: CreateMatchDto) {
@@ -101,7 +103,20 @@ export class MatchesService {
       match.endTime = new Date();
     }
 
-    return this.matchRepository.save(match);
+    const savedMatch = await this.matchRepository.save(match);
+
+    // websocket
+    try {
+      if (savedMatch.winner) {
+        const winnerId = updateMatchDto.winnerId || savedMatch.winner.id;
+
+        this.eventsGateway.notifyMatchUpdate(savedMatch.id, winnerId);
+      }
+    } catch (error) {
+      console.error('Erro ao enviar notificação WS:', error);
+    }
+
+    return savedMatch;
   }
 
   async remove(id: number) {

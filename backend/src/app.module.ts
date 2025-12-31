@@ -10,6 +10,7 @@ import { GameTablesModule } from './game-tables/game-tables.module';
 import { RegistrationsModule } from './registrations/registrations.module';
 import { MatchesModule } from './matches/matches.module';
 import { PaymentsModule } from './payments/payments.module';
+import { EventsModule } from './events/events.module';
 
 @Module({
   imports: [
@@ -39,6 +40,8 @@ import { PaymentsModule } from './payments/payments.module';
     MatchesModule,
 
     PaymentsModule,
+
+    EventsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
