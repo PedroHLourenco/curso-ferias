@@ -15,6 +15,7 @@ Este projeto visa facilitar a organização de eventos de jogos de cartas em loj
 - **Financeiro (Integração PIX):** Geração automática de QR Code e Copia e Cola via API do Mercado Pago.
 - **Gestão de Partidas (Matches):** Pareamentos, alocação de mesas e report de resultados.
 - **Gestão de Mesas:** Controle físico das mesas da loja e sua disponibilidade.
+- **Tempo Real (WebSocket):** Notificações instantâneas de atualização de vagas e resultados de partidas.
 
 ---
 
@@ -80,6 +81,25 @@ Integração direta com o **Mercado Pago API (v1)**:
 
 ---
 
+## 📡 Notificações em Tempo Real (WebSocket)
+
+O sistema implementa um **Gateway WebSocket** (via `Socket.io`) para garantir interatividade em tempo real, persistindo os dados críticos no banco antes de emitir os eventos.
+
+### Eventos Disponíveis
+
+1.  **`tournament_status`**
+
+    - **Gatilho:** Disparado sempre que uma nova inscrição é realizada (`POST /registrations`).
+    - **Payload:** ID do torneio, número atual de inscritos e status de lotação (`isFull`).
+    - **Uso:** Atualiza a barra de progresso de vagas no frontend sem recarregar a página.
+
+2.  **`match_finished`**
+    - **Gatilho:** Disparado quando o Admin define o vencedor de uma partida (`PATCH /matches/:id`).
+    - **Payload:** ID da partida e ID do vencedor.
+    - **Uso:** Atualiza o chaveamento do torneio instantaneamente para os espectadores.
+
+---
+
 ## 🛠 Tecnologias e Ferramentas
 
 ### Banco de Dados
@@ -92,6 +112,7 @@ Integração direta com o **Mercado Pago API (v1)**:
 
 - **Framework:** NestJS (Node.js)
 - **Linguagem:** TypeScript
+- **Real-time:** Socket.io (WebSocket Gateway)
 - **Validação:** `class-validator` (DTOs) e `Pipes`
 - **Configuração:** `@nestjs/config` (Variáveis de ambiente)
 
