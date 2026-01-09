@@ -9,6 +9,8 @@ import { UsersModule } from './users/users.module';
 import { GameTablesModule } from './game-tables/game-tables.module';
 import { RegistrationsModule } from './registrations/registrations.module';
 import { MatchesModule } from './matches/matches.module';
+import { PaymentsModule } from './payments/payments.module';
+import { EventsModule } from './events/events.module';
 
 @Module({
   imports: [
@@ -36,6 +38,10 @@ import { MatchesModule } from './matches/matches.module';
     RegistrationsModule,
 
     MatchesModule,
+
+    PaymentsModule,
+
+    EventsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

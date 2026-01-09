@@ -4,43 +4,114 @@ Sistema gerenciador de torneios de Trading Card Games (TCG), focado na automatiz
 
 ## 📋 Sobre o Projeto
 
-Este projeto visa facilitar a organização de eventos de jogos de cartas em lojas locais (LGS), substituindo planilhas manuais e softwares obsoletos. A arquitetura é baseada em microsserviços e módulos bem definidos, utilizando uma stack moderna e robusta.
+Este projeto visa facilitar a organização de eventos de jogos de cartas em lojas locais (LGS), substituindo planilhas manuais e softwares obsoletos. A arquitetura é baseada em microsserviços e módulos bem definidos, utilizando uma stack moderna e robusta em Node.js.
 
 ### Funcionalidades Principais
-* **Gestão de Usuários:** Controle de jogadores e administradores (Juízes/Staff).
-* **Gestão de Torneios:** Criação de eventos com suporte a taxas de inscrição e formatos variados.
-* **Financeiro (Integração PIX):** Controle de pagamentos e status de inscrição.
-* **Gestão de Mesas:** Controle físico das mesas da loja e sua disponibilidade.
-* **Pareamento (Matchmaking):** Estrutura preparada para WebSocket e alocação automática.
 
-## 🛠 Tecnologias
+- **Gestão de Usuários:** Controle de jogadores e administradores com criptografia de senhas.
+- **Autenticação & Autorização:** Sistema completo de proteção de rotas (RBAC).
+- **Gestão de Torneios:** Criação de eventos com suporte a taxas de inscrição e formatos variados.
+- **Inscrições (Registrations):** Controle de vagas (`maxPlayers`), validação de duplicidade e vínculo financeiro.
+- **Financeiro (Integração PIX):** Geração automática de QR Code e Copia e Cola via API do Mercado Pago.
+- **Gestão de Partidas (Matches):** Pareamentos, alocação de mesas e report de resultados.
+- **Gestão de Mesas:** Controle físico das mesas da loja e sua disponibilidade.
+- **Tempo Real (WebSocket):** Notificações instantâneas de atualização de vagas e resultados de partidas.
+
+---
+
+## 🔐 Autenticação e Segurança (RBAC)
+
+O sistema utiliza uma estratégia **Stateless** (sem sessão em memória) baseada em JWT (JSON Web Token) e **Guards** do NestJS para implementar RBAC (Role-Based Access Control).
+
+### 1. Tecnologias de Segurança
+
+- **Passport.js:** Gerencia as estratégias de autenticação.
+  - `LocalStrategy`: Valida email/senha no login e devolve o Token.
+  - `JwtStrategy`: Intercepta cada requisição, decodifica o Token `Bearer` e injeta o usuário no objeto `request`.
+- **Bcrypt:** Hashing unidirecional de senhas antes da persistência no banco.
+
+### 2. Sistema de Guards (Como o código funciona)
+
+A segurança não depende apenas de estar logado, mas de **quem** está logado. Implementamos dois níveis de blindagem:
+
+1.  **Nível 1: `JwtAuthGuard`**
+
+    - Verifica se o Token enviado no Header `Authorization` é válido e não expirou.
+    - Se inválido, retorna `401 Unauthorized` instantaneamente.
+
+2.  **Nível 2: `RolesGuard`**
+    - Atua após a validação do token.
+    - Utiliza o `Reflector` do NestJS para ler metadados gravados pelo decorator customizado `@Roles()`.
+    - Compara o cargo do usuário (`request.user.role`) com o cargo exigido pela rota.
+    - Se o usuário não tiver permissão, retorna `403 Forbidden`.
+
+### 3. Mapa de Permissões
+
+| Recurso           | Ação             | Rota         | Nível de Acesso | Explicação                                         |
+| :---------------- | :--------------- | :----------- | :-------------- | :------------------------------------------------- |
+| **Tournaments**   | Ver Torneios     | `GET`        | 🔓 Público      | Marketing da loja (visitantes podem ver).          |
+|                   | Criar/Editar     | `POST/PATCH` | 🔒 **ADMIN**    | Apenas a loja cria eventos.                        |
+| **Matches**       | Ver Chaveamento  | `GET`        | 🔓 Público      | Jogadores acompanham as rodadas.                   |
+|                   | Definir Vencedor | `PATCH`      | 🔒 **ADMIN**    | Apenas o organizador reporta o resultado.          |
+| **Registrations** | Inscrever-se     | `POST`       | 🔑 **Logado**   | Qualquer usuário logado pode gerar PIX.            |
+| **Users**         | Criar Conta      | `POST`       | 🔓 Público      | Cadastro aberto para novos jogadores.              |
+|                   | Editar Perfil    | `PATCH`      | 🛡️ **Híbrido**  | Usuário edita a si mesmo; Admin edita qualquer um. |
+
+---
+
+## 🏛 Arquitetura de Dados (Entidades)
+
+O sistema cumpre o requisito de modelagem relacional robusta com **5 Entidades Principais**:
+
+1.  **Users:** Atores do sistema (Jogadores e Admins).
+2.  **Tournaments:** Os eventos gerenciados.
+3.  **GameTables:** Recursos físicos da loja.
+4.  **Registrations:** Tabela pivô (N:N) com lógica de pagamento.
+5.  **Matches:** O coração do torneio, registrando o histórico de confrontos.
+
+---
+
+## 💳 Módulo de Pagamentos (Externo)
+
+Integração direta com o **Mercado Pago API (v1)**:
+
+- **Tecnologia:** `Axios` para comunicação HTTP.
+- **Fluxo:** O backend valida a inscrição -> Solicita pagamento ao Mercado Pago -> Retorna QR Code ao Frontend.
+- **Segurança:** Credenciais gerenciadas via `.env` (Ambiente Sandbox/Teste).
+
+---
+
+## 📡 Notificações em Tempo Real (WebSocket)
+
+O sistema implementa um **Gateway WebSocket** (via `Socket.io`) para garantir interatividade em tempo real, persistindo os dados críticos no banco antes de emitir os eventos.
+
+### Eventos Disponíveis
+
+1.  **`tournament_status`**
+
+    - **Gatilho:** Disparado sempre que uma nova inscrição é realizada (`POST /registrations`).
+    - **Payload:** ID do torneio, número atual de inscritos e status de lotação (`isFull`).
+    - **Uso:** Atualiza a barra de progresso de vagas no frontend sem recarregar a página.
+
+2.  **`match_finished`**
+    - **Gatilho:** Disparado quando o Admin define o vencedor de uma partida (`PATCH /matches/:id`).
+    - **Payload:** ID da partida e ID do vencedor.
+    - **Uso:** Atualiza o chaveamento do torneio instantaneamente para os espectadores.
+
+---
+
+## 🛠 Tecnologias e Ferramentas
 
 ### Banco de Dados
-* **PostgreSQL 16+** (via Docker)
-* **DBeaver** (Modelagem e Scripts)
+
+- **PostgreSQL 16+** (Docker)
+- **TypeORM** (Abordagem Database First / Repository Pattern)
+- **DBeaver** (Modelagem e Scripts SQL)
 
 ### Backend (API)
-* **Framework:** NestJS (Node.js)
-* **Linguagem:** TypeScript
-* **ORM:** TypeORM (Abordagem *Database First*)
-* **Gerenciador de Pacotes:** npm
-* **Segurança:** Variáveis de ambiente com `@nestjs/config`
 
-## 🚀 Configuração do Ambiente
-
-### Pré-requisitos
-* [Docker](https://www.docker.com/) instalado e rodando.
-* [Node.js](https://nodejs.org/) (v18+) instalado.
-* [NestJS CLI](https://docs.nestjs.com/) instalado globalmente (`npm i -g @nestjs/cli`).
-
-### 1. Banco de Dados (Docker)
-
-Suba o container do banco de dados com as credenciais configuradas:
-
-```bash
-docker run --name projeto-db \
-  -e POSTGRES_USER=docker \
-  -e POSTGRES_PASSWORD=docker \
-  -e POSTGRES_DB=reservas_db \
-  -p 5432:5432 \
-  -d postgres
+- **Framework:** NestJS (Node.js)
+- **Linguagem:** TypeScript
+- **Real-time:** Socket.io (WebSocket Gateway)
+- **Validação:** `class-validator` (DTOs) e `Pipes`
+- **Configuração:** `@nestjs/config` (Variáveis de ambiente)
