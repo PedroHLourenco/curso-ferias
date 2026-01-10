@@ -33,6 +33,7 @@ export class UsersService {
       username: createUserDto.username,
       email: createUserDto.email,
       passwordHash: passwordHash,
+      userRole: createUserDto.role || 'player',
     });
 
     const savedUser = await this.usersRepository.save(newUser);
