@@ -11,9 +11,10 @@ import {
   CardTitle,
 } from "../../components/ui/card";
 import { Trophy, Loader2 } from "lucide-react";
-import { Label } from "@radix-ui/react-label";
+import { Label } from "../../components/ui/label";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
+import { jwtDecode } from "jwt-decode";
 
 export function Login() {
   const [email, setEmail] = useState("");
@@ -30,15 +31,20 @@ export function Login() {
     setError("");
 
     try {
-      // chamada da api
       const response = await api.post("/auth/login", { email, password });
 
       //salva o token no context
       const { access_token } = response.data;
       login(access_token);
 
-      //redirect
-      navigate("/");
+      const decoded: any = jwtDecode(access_token);
+
+      if (decoded.role === "admin") {
+        navigate("/dashboard");
+      } else {
+        navigate("/");
+      }
+
     } catch (error) {
       setError("Email ou senha inválidos");
       console.error(error);
@@ -104,7 +110,11 @@ export function Login() {
               className="w-full bg-purple-600 hover:bg-purple-700"
               disabled={loading}
             >
-              {loading ? <Loader2 /> : "Entrar"}
+              {loading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                "Entrar"
+              )}
             </Button>
             <div className="text-sm text-center text-slate-400">
               Não tem uma conta?{" "}

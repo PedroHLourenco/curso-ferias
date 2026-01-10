@@ -6,7 +6,7 @@ import {
   Routes,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import { Login } from "./pages/Auth/LOgin";
+import { Login } from "./pages/Auth/Login";
 import { Register } from "./pages/Auth/Register";
 import { Home } from "./pages/Public/Home";
 import { Dashboard } from "./pages/Admin/Dashboard";
@@ -44,7 +44,7 @@ function App() {
             <Route path="/" element={<Home />} />
             {/* rotas admin */}
             <Route element={<AdmRoute />}>
-              <Route path="/admin" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
             </Route>
             {/* redireciona pra home se der 404*/}
             <Route path="*" element={<Navigate to="/" />} />{" "}
