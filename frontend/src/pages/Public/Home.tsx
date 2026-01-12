@@ -154,7 +154,7 @@ export function Home() {
             </CardContent>
 
             <CardFooter>
-              <Link to={`tournaments/${t.id}`} className="w-full">
+              <Link to={`tournament/${t.id}`} className="w-full">
                 <Button className="w-full bg-slate-800 hover:bg-purple-600 text-white transition-colors group">
                   Ver detalhes
                   <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
