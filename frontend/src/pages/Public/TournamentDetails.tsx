@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
+import { PaymentModal } from "../../components/layout/PaymentModal";
 
 interface Tournament {
   id: number;
@@ -29,6 +30,8 @@ export function TournamentDetails() {
 
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const formatDate = (dateString: string) => {
     if (!dateString) {
@@ -87,7 +90,7 @@ export function TournamentDetails() {
       return;
     }
 
-    // implementar a modal de pagamento aqui
+    setIsModalOpen(true);
   }
 
   if (loading) {
@@ -231,6 +234,17 @@ export function TournamentDetails() {
           </div>
         </div>
       </div>
+
+      {/* renderização da modal da inscrição */}
+      {tournament && (
+        <PaymentModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          tournamentId={tournament.id}
+          tournamentName={tournament.tournamentName}
+          price={tournament.entryFee}
+        />
+      )}
     </div>
   );
 }
