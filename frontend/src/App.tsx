@@ -1,37 +1,13 @@
-import {
-  BrowserRouter,
-  Navigate,
-  Outlet,
-  Route,
-  Routes,
-} from "react-router-dom";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { AuthProvider } from "./contexts/AuthContext";
 import { Login } from "./pages/Auth/Login";
 import { Register } from "./pages/Auth/Register";
 import { Home } from "./pages/Public/Home";
-import { Dashboard } from "./pages/Admin/Dashboard";
+import { AdminDashboard } from "./pages/Admin/AdminDashboard";
 import { TournamentDetails } from "./pages/Public/TournamentDetails";
-
-//rota para users logados
-const privateRoute = () => {
-  const { isAuthenticated, isLoading } = useAuth();
-
-  if (isLoading) {
-    return <div className="text-white">Carregando...</div>;
-  }
-
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" />;
-};
-
-const AdmRoute = () => {
-  const { user, isLoading } = useAuth();
-
-  if (isLoading) {
-    return <div className="text-white">Carregando...</div>;
-  }
-
-  return user?.role === "admin" ? <Outlet /> : <Navigate to="/" />;
-};
+import { AdminLayout } from "./components/layout/AdminLayout";
+import { CreateTournament } from "./pages/Admin/CreateTournament";
+import { TournamentsList } from "./pages/Admin/TournamentsList";
 
 function App() {
   return (
@@ -43,10 +19,12 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/" element={<Home />} />
-            <Route path="/tournament/:id" element={<TournamentDetails />}/>
+            <Route path="/tournament/:id" element={<TournamentDetails />} />
             {/* rotas admin */}
-            <Route element={<AdmRoute />}>
-              <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<AdminDashboard />} />
+              <Route path="tournaments/new" element={<CreateTournament />} />
+              <Route path="tournaments" element={<TournamentsList />} />
             </Route>
             {/* redireciona pra home se der 404*/}
             <Route path="*" element={<Navigate to="/" />} />{" "}
