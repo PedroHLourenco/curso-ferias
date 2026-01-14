@@ -15,6 +15,7 @@ import { Label } from "../../components/ui/label";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
 import { jwtDecode } from "jwt-decode";
+import { toast } from "sonner";
 
 export function Login() {
   const [email, setEmail] = useState("");
@@ -33,6 +34,8 @@ export function Login() {
     try {
       const response = await api.post("/auth/login", { email, password });
 
+      toast.success("Login realizado com sucesso");
+
       //salva o token no context
       const { access_token } = response.data;
       login(access_token);
@@ -44,9 +47,12 @@ export function Login() {
       } else {
         navigate("/");
       }
-
     } catch (error) {
       setError("Email ou senha inválidos");
+
+      toast.error("Falha ao entrar", {
+        description: "Verifique suas credenciais e tente novamente.",
+      });
       console.error(error);
     } finally {
       setLoading(false);

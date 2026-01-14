@@ -17,6 +17,7 @@ import {
 } from "../../components/ui/card";
 import { Link } from "react-router-dom";
 import { Button } from "../../components/ui/button";
+import { toast } from "sonner";
 
 interface Tournament {
   id: number;
@@ -39,6 +40,10 @@ export function Home() {
       setTournaments(response.data);
     } catch (error) {
       console.error("Erro ao buscar torneios:", error);
+
+      toast.error("Não foi possível carregar os torneios", {
+        description: "Verifique sua conexão e recarregue a página.",
+      });
     } finally {
       setLoading(false);
     }

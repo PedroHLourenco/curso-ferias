@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import api from "../../services/api";
 import { Link } from "react-router-dom";
 import { Button } from "../../components/ui/button";
-import { Calendar, Eye, Pencil, Plus, Trash2, Users } from "lucide-react";
+import { Calendar, Pencil, Plus, Trash2, Users } from "lucide-react";
+import { toast } from "sonner";
 
 interface Tournament {
   id: number;
@@ -44,10 +45,16 @@ export function TournamentsList() {
     try {
       await api.delete(`/tournaments/${id}`);
       setTournaments((prev) => prev.filter((t) => t.id !== id));
-      alert("Torneio excluído.");
+
+      toast.success("Torneio excluído", {
+        description: "O evento e suas inscrições foram removidos.",
+      });
     } catch (error) {
       console.error(error);
-      alert("Erro ao excluir torneio.");
+
+      toast.error("Não foi possível excluir", {
+        description: "Ocorreu um erro ao tentar remover o torneio.",
+      });
     }
   }
 

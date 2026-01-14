@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "../../components/ui/card";
 import { PaymentModal } from "../../components/layout/PaymentModal";
+import { toast } from "sonner";
 
 interface Tournament {
   id: number;
@@ -77,6 +78,8 @@ export function TournamentDetails() {
         setTournament(response.data);
       } catch (error) {
         console.error("Erro ao buscar detalhes:", error);
+
+        toast.error("Erro ao carregar detalhes do torneio");
       } finally {
         setLoading(false);
       }
@@ -86,6 +89,11 @@ export function TournamentDetails() {
 
   function handleSubscribe() {
     if (!user) {
+      toast.info("Faça login para continuar", {
+        description: "Você precisa de uma conta para se inscrever em torneios.",
+        duration: 4000,
+      });
+
       navigate("/login"); // se não estiver logado, manda de volta pro login
       return;
     }

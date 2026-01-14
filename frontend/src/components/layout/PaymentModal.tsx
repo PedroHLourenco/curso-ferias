@@ -19,6 +19,7 @@ import {
 import { Button } from "../ui/button";
 import { Label } from "@radix-ui/react-label";
 import { Input } from "../ui/input";
+import { toast } from "sonner";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -106,6 +107,10 @@ export function PaymentModal({
     if (pixData?.copyPaste) {
       navigator.clipboard.writeText(pixData.copyPaste);
       setCopied(true);
+
+      toast.success("Código Pix copiado!", {
+        description: "Cole no app do seu banco para pagar.",
+      });
 
       setTimeout(() => setCopied(false), 2000);
     }

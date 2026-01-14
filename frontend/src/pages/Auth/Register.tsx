@@ -16,6 +16,7 @@ import { Button } from "../../components/ui/button";
 import { Checkbox } from "../../components/ui/checkbox";
 import { useAuth } from "../../contexts/AuthContext";
 import { jwtDecode } from "jwt-decode";
+import { toast } from "sonner";
 
 export function Register() {
   const [username, setUsername] = useState("");
@@ -62,11 +63,17 @@ export function Register() {
         navigate("/home");
       }
 
-      alert("Conta criada com sucesso");
+      toast.success("Conta criada com sucesso", {
+        description: "Seja bem vindo à plataforma!",
+      });
     } catch (error: any) {
       console.error(error);
-      const msg =
-        error.response?.data?.message || "Erro ao criar conta. Tente novamente";
+      const msg = error.response?.data?.message || "Erro ao criar conta";
+
+      toast.error("Erro no cadastro", {
+        description: Array.isArray(msg) ? msg[0] : msg,
+      });
+
       setError(Array.isArray(msg) ? msg[0] : msg);
     } finally {
       setLoading(false);

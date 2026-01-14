@@ -12,6 +12,8 @@ import { ManageTournaments } from "./pages/Admin/ManageTournaments";
 import { EditTournament } from "./pages/Admin/EditTournament";
 import { RegistrationsList } from "./pages/Admin/RegistrationsList";
 
+import { Toaster } from "sonner";
+
 function App() {
   return (
     <AuthProvider>
@@ -35,6 +37,8 @@ function App() {
             {/* redireciona pra home se der 404*/}
             <Route path="*" element={<Navigate to="/" />} />{" "}
           </Routes>
+
+          <Toaster richColors position="top-right" theme="dark" />
         </div>
       </BrowserRouter>
     </AuthProvider>

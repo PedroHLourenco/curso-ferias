@@ -14,11 +14,11 @@ import {
 import {
   Card,
   CardContent,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
+import { toast } from "sonner";
 
 interface Registration {
   id: number;
@@ -75,8 +75,10 @@ export function ManageTournaments() {
     try {
       await api.delete(`/registrations/${regId}`);
       setRegistrations((prev) => prev.filter((r) => r.id !== regId));
+
+      toast.success("Inscrição removida");
     } catch (e) {
-      alert("Erro ao remover");
+      toast.error("Erro ao remover inscrição");
     }
   }
 
@@ -88,10 +90,16 @@ export function ManageTournaments() {
       setRegistrations((prev) =>
         prev.map((r) => (r.id === regId ? { ...r, paymentStatus: "paid" } : r))
       );
-      alert("Pagamento confirmado!");
+
+      toast.success("Pagamento confirmado", {
+        description: "O status do jogador foi atualizado para Pago.",
+      });
     } catch (e) {
       console.error(e);
-      alert("Erro ao atualizar status. Verifique se a rota PATCH existe.");
+
+      toast.error("Erro na atualização", {
+        description: "Não foi possível confirmar o pagamento.",
+      });
     }
   }
 
@@ -120,26 +128,6 @@ export function ManageTournaments() {
       </span>
     );
   };
-
-  async function handleRemoveRegistration(regId: number) {
-    const confirmDelete = window.confirm(
-      "Tem certeza que deseja remover essa inscrição? Uma vaga será liberada"
-    );
-
-    if (!confirmDelete) {
-      return;
-    }
-
-    try {
-      await api.delete(`/registrations/${regId}`);
-
-      setRegistrations((prev) => prev.filter((reg) => reg.id !== regId));
-      alert("Inscrição removida com sucesso");
-    } catch (error) {
-      console.error("Erro ao remover:", error);
-      alert("Erro ao remover inscrição");
-    }
-  }
 
   return (
     <div className="space-y-6">

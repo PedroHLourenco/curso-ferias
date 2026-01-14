@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../../services/api";
 import { Button } from "../../components/ui/button";
-import { AlertCircle, ArrowLeft, Loader2, Save } from "lucide-react";
+import { ArrowLeft, Loader2, Save } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -19,10 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../components/ui/select";
+import { toast } from "sonner";
 
 export function CreateTournament() {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   const navigate = useNavigate();
 
@@ -46,7 +46,6 @@ export function CreateTournament() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
-    setError("");
 
     try {
       const payload = {
@@ -59,16 +58,20 @@ export function CreateTournament() {
 
       await api.post("/tournaments", payload);
 
-      alert("Torneio criado com sucesso!");
+      toast.success("Torneio criado com sucesso!", {
+        description: "As inscrições já estão abertas.",
+      });
       navigate("/admin");
     } catch (error: any) {
       console.log(error);
       const message = error.response?.data?.message;
-      setError(
-        Array.isArray(message)
-          ? message[0]
-          : message || "Erro ao criar torneio."
-      );
+      const finalMessage = Array.isArray(message)
+        ? message[0]
+        : message || "Verifique os dados e tente novamente.";
+
+      toast.error("Erro ao criar torneio", {
+        description: finalMessage,
+      });
     } finally {
       setLoading(false);
     }
@@ -193,12 +196,6 @@ export function CreateTournament() {
                 />
               </div>
             </div>
-
-            {error && (
-              <div className="bg-red-950/30 border border-red-900/50 text-red-400 p-3 rounded flex items-center gap-2 text-sm">
-                <AlertCircle className="w-4 h-4" /> {error}
-              </div>
-            )}
 
             {/* salvar torneio */}
             <Button
