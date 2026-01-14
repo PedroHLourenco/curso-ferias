@@ -18,6 +18,7 @@ import {
 import { Link } from "react-router-dom";
 import { Button } from "../../components/ui/button";
 import { toast } from "sonner";
+import { useSocket } from "../../hooks/useSocket";
 
 interface Tournament {
   id: number;
@@ -26,12 +27,15 @@ interface Tournament {
   tournamentDate: string;
   entryFee: number;
   maxPlayers: number;
+  currentPlayers?: number;
   tournamentStatus: string;
 }
 
 export function Home() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const { on } = useSocket();
 
   async function fetchTournaments() {
     try {
@@ -50,7 +54,53 @@ export function Home() {
   }
 
   useEffect(() => {
-    fetchTournaments();
+    async function fetchInitialData() {
+      try {
+        setLoading(true);
+        const [tournamentsRes, registrationsRes] = await Promise.all([
+          api.get("/tournaments"),
+          api.get("/registrations"),
+        ]);
+
+        const tournamentsData = tournamentsRes.data;
+        const allRegistrations = registrationsRes.data;
+
+        const tournamentsWithCounts = tournamentsData.map((t: any) => {
+          const count = allRegistrations.filter(
+            (r: any) => r.tournament.id === t.id
+          ).length;
+
+          return {
+            ...t,
+            currentPlayers: count,
+          };
+        });
+
+        setTournaments(tournamentsWithCounts);
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchInitialData();
+
+    on("tournament_status", (data: any) => {
+      console.log("📡 Atualização recebida:", data);
+
+      setTournaments((prevList) =>
+        prevList.map((t) => {
+          if (t.id === data.tournamentId) {
+            return {
+              ...t,
+              currentPlayers: data.currentPlayers,
+            };
+          }
+          return t;
+        })
+      );
+    });
   }, []);
 
   const formatDate = (dateString: string) => {
@@ -154,7 +204,23 @@ export function Home() {
 
               <div className="flex items-center gap-2 text-sm">
                 <Users className="w-4 h-4 text-blue-400" />
-                <span>Vagas: {t.maxPlayers} jogadores</span>
+                <span className="font-mono">
+                  Inscritos:{" "}
+                  <strong className="text-white">
+                    {t.currentPlayers ?? 0}
+                  </strong>{" "}
+                  / {t.maxPlayers}
+                </span>
+              </div>
+
+              {/* Barra de Progresso Visual */}
+              <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1">
+                <div
+                  className="bg-purple-500 h-full transition-all duration-500"
+                  style={{
+                    width: `${((t.currentPlayers || 0) / t.maxPlayers) * 100}%`,
+                  }}
+                />
               </div>
             </CardContent>
 
