@@ -2,278 +2,453 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../../services/api";
 import {
-  AlertTriangle,
   ArrowLeft,
   CheckCircle,
   Clock,
-  FileText,
+  Plus,
   ShieldCheck,
+  Swords,
   Trash2,
-  User,
+  Users,
 } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
+import { Card, CardContent } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { toast } from "sonner";
+import { useSocket } from "../../hooks/useSocket";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "../../components/ui/dialog";
+import { Label } from "../../components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
 
 interface Registration {
   id: number;
   paymentStatus: string;
-  decklist: string | null;
-  createdAt: string;
-  user: {
-    id: number;
-    username: string;
-    email: string;
-  };
-  tournament: {
-    id: number;
-    tournamentName: string;
-  };
+  user: { id: number; username: string; email: string };
+  tournament: { id: number; tournamentName: string; tournamentStatus: string };
+}
+
+interface Match {
+  id: number;
+  player1Id: number;
+  player2Id: number;
+  winnerId: number | null;
+  tournamentId: number;
+  player1?: { username: string };
+  player2?: { username: string };
 }
 
 export function ManageTournaments() {
   const { id } = useParams();
+  const tournamentId = Number(id);
+
+  const [activeTab, setActiveTab] = useState<"players" | "matches">("players");
   const [registrations, setRegistrations] = useState<Registration[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [matches, setMatches] = useState<Match[]>([]);
+
   const [tournamentName, setTournamentName] = useState("");
+  const [tournamentStatus, setTournamentStatus] = useState("open");
+
+  const [isMatchModalOpen, setIsMatchModalOpen] = useState(false);
+  const [selectedP1, setSelectedP1] = useState<string>("");
+  const [selectedP2, setSelectedP2] = useState<string>("");
+
+  const { on } = useSocket();
 
   useEffect(() => {
-    async function fetchData() {
-      try {
-        const response = await api.get("/registrations");
-
-        const allRegistrations: Registration[] = response.data;
-        const filtered = allRegistrations.filter(
-          (r) => r.tournament.id === Number(id)
-        );
-
-        setRegistrations(filtered);
-
-        if (filtered.length > 0) {
-          setTournamentName(filtered[0].tournament.tournamentName);
-        } else {
-          const tResponse = await api.get(`/tournaments/${id}`);
-          setTournamentName(tResponse.data.tournamentName);
-        }
-      } catch (error) {
-        console.error("Erro ao buscar dados");
-      } finally {
-        setLoading(false);
-      }
-    }
-
     fetchData();
-  }, [id]);
+    on("match_status", (data: any) => {
+      setMatches((prev) =>
+        prev.map((m) =>
+          m.id === data.matchId ? { ...m, winnerId: data.winnerId } : m
+        )
+      );
+    });
+  }, [tournamentId]);
 
-  async function handleRemove(regId: number) {
-    if (!confirm("Remover esta inscrição?")) return;
+  async function fetchData() {
     try {
-      await api.delete(`/registrations/${regId}`);
-      setRegistrations((prev) => prev.filter((r) => r.id !== regId));
+      const regResponse = await api.get("/registrations");
+      const filteredRegs = regResponse.data.filter(
+        (r: any) => r.tournament.id === tournamentId
+      );
+      setRegistrations(filteredRegs);
 
-      toast.success("Inscrição removida");
-    } catch (e) {
-      toast.error("Erro ao remover inscrição");
+      if (filteredRegs.length > 0) {
+        setTournamentName(filteredRegs[0].tournament.tournamentName);
+        setTournamentStatus(filteredRegs[0].tournament.tournamentStatus);
+
+        if (filteredRegs[0].tournament.tournamentStatus === "started") {
+          fetchMatches();
+          setActiveTab("matches");
+        }
+      } else {
+        const tResponse = await api.get(`/tournaments/${tournamentId}`);
+        setTournamentName(tResponse.data.tournamentName);
+        setTournamentStatus(tResponse.data.tournamentStatus);
+      }
+    } catch (error) {
+      console.error("Erro ao buscar dados", error);
     }
   }
 
+  async function fetchMatches() {
+    try {
+      const response = await api.get(`/matches`);
+      const myMatches = response.data.filter(
+        (m: any) => Number(m.tournamentId) === tournamentId
+      );
+      setMatches(myMatches);
+    } catch (error) {
+      console.error("Erro ao buscar partidas");
+    }
+  }
+
+  async function handleCreateMatch() {
+    if (!selectedP1 || !selectedP2) {
+      toast.warning("Selecione dois jogadores diferentes");
+      return;
+    }
+    if (selectedP1 === selectedP2) {
+      toast.error("O jogador não pode jogar contra si mesmo");
+      return;
+    }
+
+    try {
+      const payload = {
+        tournamentId: tournamentId,
+        player1Id: Number(selectedP1),
+        player2Id: Number(selectedP2),
+        round: 1,
+        tableId: 1,
+      };
+
+      await api.post("/matches", payload);
+
+      toast.success("Partida criada!");
+      setIsMatchModalOpen(false);
+      setSelectedP1("");
+      setSelectedP2("");
+      fetchMatches();
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao criar partida");
+    }
+  }
+
+  async function handleStartTournament() {
+    if (!confirm("Iniciar o torneio?")) return;
+    try {
+      await api.patch(`/tournaments/${tournamentId}`, {
+        tournamentStatus: "started",
+      });
+      setTournamentStatus("started");
+      toast.success("Torneio iniciado!");
+      await fetchMatches();
+      setActiveTab("matches");
+    } catch {
+      toast.error("Erro ao iniciar");
+    }
+  }
+
+  async function handleSetWinner(matchId: number, winnerId: number) {
+    try {
+      await api.patch(`/matches/${matchId}`, { winnerId });
+      setMatches((prev) =>
+        prev.map((m) => (m.id === matchId ? { ...m, winnerId } : m))
+      );
+      toast.success("Vencedor definido!");
+    } catch {
+      toast.error("Erro ao salvar resultado");
+    }
+  }
+
+  async function handleRemove(regId: number) {
+    if (!confirm("Remover?")) return;
+    try {
+      await api.delete(`/registrations/${regId}`);
+      setRegistrations((p) => p.filter((r) => r.id !== regId));
+      toast.success("Removido");
+    } catch {
+      toast.error("Erro");
+    }
+  }
   async function handleApprove(regId: number) {
-    if (!confirm("Confirmar pagamento manualmente?")) return;
     try {
       await api.patch(`/registrations/${regId}`, { paymentStatus: "paid" });
-
-      setRegistrations((prev) =>
-        prev.map((r) => (r.id === regId ? { ...r, paymentStatus: "paid" } : r))
+      setRegistrations((p) =>
+        p.map((r) => (r.id === regId ? { ...r, paymentStatus: "paid" } : r))
       );
-
-      toast.success("Pagamento confirmado", {
-        description: "O status do jogador foi atualizado para Pago.",
-      });
-    } catch (e) {
-      console.error(e);
-
-      toast.error("Erro na atualização", {
-        description: "Não foi possível confirmar o pagamento.",
-      });
+      toast.success("Pago");
+    } catch {
+      toast.error("Erro");
     }
   }
 
   const getStatusBadge = (status: string) => {
-    const s = status?.toLowerCase() || "";
-
-    if (s.includes("approved") || s === "paid") {
+    if (status?.toLowerCase().includes("approved") || status === "paid")
       return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-500 border border-green-500/20">
-          <CheckCircle className="h-3 w-3" /> Pago
+        <span className="text-green-500 flex items-center gap-1">
+          <CheckCircle className="w-3 h-3" /> Pago
         </span>
       );
-    }
-
-    if (s.includes("pending") || s === "payment pending") {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
-          <Clock className="w-3 h-3 mr-1" /> Pendente
-        </span>
-      );
-    }
-
     return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-500 border border-red-500/20">
-        <AlertTriangle className="w-3 h-3 mr-1" /> {status}
+      <span className="text-yellow-500 flex items-center gap-1">
+        <Clock className="w-3 h-3" /> Pendente
       </span>
     );
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-4">
         <Link
           to="/admin/tournaments"
           className="text-slate-400 hover:text-white flex items-center gap-2 text-sm w-fit"
         >
-          <ArrowLeft className="h-4 w-4" /> Voltar para lista
+          <ArrowLeft className="h-4 w-4" /> Voltar
         </Link>
 
-        <h1 className="text-3xl font-bold text-white">
-          Gestão:{" "}
-          <span className="text-purple-400">
-            {tournamentName || "Carregando..."}
-          </span>
-        </h1>
+        <div className="flex justify-between items-end">
+          <div>
+            <h1 className="text-3xl font-bold text-white flex items-center gap-2">
+              {tournamentName}
+            </h1>
+            <span
+              className={`text-xs border px-2 py-1 rounded uppercase mt-2 inline-block ${
+                tournamentStatus === "started"
+                  ? "text-blue-500 border-blue-500/30"
+                  : "text-green-500 border-green-500/30"
+              }`}
+            >
+              {tournamentStatus === "started"
+                ? "Em Andamento"
+                : "Inscrições Abertas"}
+            </span>
+          </div>
+          {tournamentStatus === "open" && (
+            <Button
+              onClick={handleStartTournament}
+              className="bg-green-600 hover:bg-green-700 font-bold"
+            >
+              <Swords className="mr-2 h-4 w-4" /> Iniciar Torneio
+            </Button>
+          )}
+        </div>
+      </div>
 
+      <div className="flex gap-2 border-b border-slate-800 pb-1">
+        <Button
+          variant="ghost"
+          onClick={() => setActiveTab("players")}
+          className={`rounded-b-none border-b-2 ${
+            activeTab === "players"
+              ? "border-purple-500 text-purple-400"
+              : "border-transparent text-slate-400"
+          }`}
+        >
+          <Users className="w-4 h-4 mr-2" /> Inscritos ({registrations.length})
+        </Button>
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setActiveTab("matches");
+            fetchMatches();
+          }}
+          className={`rounded-b-none border-b-2 ${
+            activeTab === "matches"
+              ? "border-purple-500 text-purple-400"
+              : "border-transparent text-slate-400"
+          }`}
+        >
+          <Swords className="w-4 h-4 mr-2" /> Partidas
+        </Button>
+      </div>
+
+      {activeTab === "players" && (
         <Card className="bg-slate-900 border-slate-800">
-          <CardHeader>
-            <CardTitle className="text-white">
-              Jogadores Inscritos ({registrations.length})
-            </CardTitle>
-          </CardHeader>
-
-          <CardContent>
-            <div className="rounded-md border border-slate-800 overflow-hidden">
-              <table className="w-full text-sm text-left text-slate-400">
-                <thead className="bg-slate-950 text-slate-200 uppercase font-bold text-xs">
-                  <tr>
-                    <th className="p-4">Jogador</th>
-                    <th className="p-4">Data Inscrição</th>
-                    <th className="p-4">Decklist</th>
-                    <th className="p-4">Status Pagamento</th>
-                    <th className="p-4 text-right"> Ações</th>
-                  </tr>
-                </thead>
-
-                <tbody className="divide-y divide-slate-800 bg-slate-900">
-                  {loading ? (
-                    <tr>
-                      <td colSpan={5} className="p-8 text-center">
-                        Carregando...
-                      </td>
-                    </tr>
-                  ) : registrations.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="p-8 text-center text-slate-500"
+          <CardContent className="p-0">
+            <table className="w-full text-sm text-left text-slate-400">
+              <thead className="bg-slate-950 text-slate-200 uppercase font-bold text-xs">
+                <tr>
+                  <th className="p-4">Jogador</th>
+                  <th className="p-4">Status</th>
+                  <th className="p-4 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800">
+                {registrations.map((reg) => (
+                  <tr key={reg.id}>
+                    <td className="p-4 text-white font-medium">
+                      {reg.user?.username || "Jogador"}
+                    </td>
+                    <td className="p-4">{getStatusBadge(reg.paymentStatus)}</td>
+                    <td className="p-4 text-right flex justify-end gap-2">
+                      {!reg.paymentStatus.includes("paid") && (
+                        <Button
+                          size="icon"
+                          variant="outline"
+                          className="h-8 w-8 text-green-500"
+                          onClick={() => handleApprove(reg.id)}
+                        >
+                          <ShieldCheck className="w-4 h-4" />
+                        </Button>
+                      )}
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-8 w-8 text-red-500"
+                        onClick={() => handleRemove(reg.id)}
                       >
-                        Nenhum jogador inscrito
-                      </td>
-                    </tr>
-                  ) : (
-                    registrations.map((reg) => (
-                      <tr key={reg.id} className="hover:bg-slate-800/50">
-                        {/* jogador */}
-                        <td className="p-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-purple-500">
-                              <User className="h-4 w-4" />
-                            </div>
-
-                            <div>
-                              <div className="text-white font-medium">
-                                {reg.user.username}
-                              </div>
-                              <div className="text-xs text-slate-500">
-                                {reg.user.email}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-
-                        {/* Data */}
-                        <td className="p-4">
-                          {new Date(reg.createdAt).toLocaleDateString("pt-BR")}
-                        </td>
-
-                        {/* Decklist */}
-                        <td className="p-4">
-                          {reg.decklist ? (
-                            <a
-                              href={
-                                reg.decklist.startsWith("http")
-                                  ? reg.decklist
-                                  : "#"
-                              }
-                              target="_blank"
-                              rel="noreferrer"
-                              className="flex items-center gap-1 text-blue-400 hover:text-blue-300 hover:underline"
-                              onClick={(e) => {
-                                if (!reg.decklist?.startsWith("http")) {
-                                  e.preventDefault();
-                                  alert(`Decklist (Texto):\n\n${reg.decklist}`);
-                                }
-                              }}
-                            >
-                              <FileText className="w-3 h-3" /> Ver deck
-                            </a>
-                          ) : (
-                            <span className="text-slate-600 italic text-xs">
-                              Não enviada
-                            </span>
-                          )}
-                        </td>
-
-                        {/* Status */}
-                        <td className="p-4">
-                          {getStatusBadge(reg.paymentStatus)}
-                        </td>
-
-                        {/* Ações */}
-                        <td className="p-4 text-right flex justify-end gap-2">
-                          {!reg.paymentStatus.includes("approved") && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="border-green-800 text-green-500 hover:bg-green-900/30"
-                              onClick={() => handleApprove(reg.id)}
-                              title="Confirmar Pagamento Manualmente"
-                            >
-                              <ShieldCheck className="w-4 h-4" />
-                            </Button>
-                          )}
-
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-red-400 hover:bg-red-900/20"
-                            onClick={() => handleRemove(reg.id)}
-                            title="Remover Inscrição"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </CardContent>
         </Card>
-      </div>
+      )}
+
+      {activeTab === "matches" && (
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <Button
+              onClick={() => setIsMatchModalOpen(true)}
+              variant="outline"
+              className="border-purple-700 bg-purple-600 hover:bg-purple-700 hover:text-white text-slate-300"
+            >
+              <Plus className="w-4 h-4 mr-2" /> Criar Partida
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4">
+            {matches.length === 0 ? (
+              <div className="text-center py-10 text-slate-500 border border-slate-800 rounded bg-slate-900">
+                <Swords className="mx-auto w-10 h-10 mb-2 opacity-20" />
+                <p>Nenhuma partida criada.</p>
+              </div>
+            ) : (
+              matches.map((match) => (
+                <Card key={match.id} className="bg-slate-900 border-slate-800">
+                  <CardContent className="p-4 flex justify-between items-center">
+                    <div
+                      className={`flex-1 p-3 rounded border text-center ${
+                        match.winnerId === match.player1Id
+                          ? "border-green-500 bg-green-500/10 text-green-400"
+                          : "border-slate-800"
+                      }`}
+                    >
+                      <div className="font-bold text-lg">
+                        {match.player1?.username || `ID ${match.player1Id}`}
+                      </div>
+                      {!match.winnerId && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="mt-2 text-xs h-7"
+                          onClick={() =>
+                            handleSetWinner(match.id, match.player1Id)
+                          }
+                        >
+                          Vencedor
+                        </Button>
+                      )}
+                    </div>
+                    <div className="px-4 font-bold text-slate-600">VS</div>
+                    <div
+                      className={`flex-1 p-3 rounded border text-center ${
+                        match.winnerId === match.player2Id
+                          ? "border-green-500 bg-green-500/10 text-green-400"
+                          : "border-slate-800"
+                      }`}
+                    >
+                      <div className="font-bold text-lg">
+                        {match.player2?.username || `ID ${match.player2Id}`}
+                      </div>
+                      {!match.winnerId && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="mt-2 text-xs h-7"
+                          onClick={() =>
+                            handleSetWinner(match.id, match.player2Id)
+                          }
+                        >
+                          Vencedor
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE CRIAR PARTIDA */}
+      <Dialog open={isMatchModalOpen} onOpenChange={setIsMatchModalOpen}>
+        <DialogContent className="bg-slate-900 border-slate-800 text-white">
+          <DialogHeader>
+            <DialogTitle>Nova Partida</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label>Jogador 1</Label>
+              <Select onValueChange={setSelectedP1} value={selectedP1}>
+                <SelectTrigger className="bg-slate-950 border-slate-700 text-white">
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900 border-slate-700 text-white">
+                  {registrations.map((r) => (
+                    <SelectItem key={r.user.id} value={String(r.user.id)}>
+                      {r.user.username}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Jogador 2</Label>
+              <Select onValueChange={setSelectedP2} value={selectedP2}>
+                <SelectTrigger className="bg-slate-950 border-slate-700 text-white">
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent className="bg-slate-900 border-slate-700 text-white">
+                  {registrations.map((r) => (
+                    <SelectItem key={r.user.id} value={String(r.user.id)}>
+                      {r.user.username}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setIsMatchModalOpen(false)} variant="ghost">
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreateMatch}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

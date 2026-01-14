@@ -17,7 +17,6 @@ import {
 } from "../../components/ui/card";
 import { Link } from "react-router-dom";
 import { Button } from "../../components/ui/button";
-import { toast } from "sonner";
 import { useSocket } from "../../hooks/useSocket";
 
 interface Tournament {
@@ -36,22 +35,6 @@ export function Home() {
   const [loading, setLoading] = useState(true);
 
   const { on } = useSocket();
-
-  async function fetchTournaments() {
-    try {
-      const response = await api.get("/tournaments");
-
-      setTournaments(response.data);
-    } catch (error) {
-      console.error("Erro ao buscar torneios:", error);
-
-      toast.error("Não foi possível carregar os torneios", {
-        description: "Verifique sua conexão e recarregue a página.",
-      });
-    } finally {
-      setLoading(false);
-    }
-  }
 
   useEffect(() => {
     async function fetchInitialData() {
@@ -87,7 +70,7 @@ export function Home() {
     fetchInitialData();
 
     on("tournament_status", (data: any) => {
-      console.log("📡 Atualização recebida:", data);
+      console.log("Atualização recebida:", data);
 
       setTournaments((prevList) =>
         prevList.map((t) => {
