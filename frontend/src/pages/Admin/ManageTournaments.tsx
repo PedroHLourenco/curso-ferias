@@ -7,6 +7,8 @@ import {
   CheckCircle,
   Clock,
   FileText,
+  ShieldCheck,
+  Trash2,
   User,
 } from "lucide-react";
 import {
@@ -67,6 +69,31 @@ export function ManageTournaments() {
 
     fetchData();
   }, [id]);
+
+  async function handleRemove(regId: number) {
+    if (!confirm("Remover esta inscrição?")) return;
+    try {
+      await api.delete(`/registrations/${regId}`);
+      setRegistrations((prev) => prev.filter((r) => r.id !== regId));
+    } catch (e) {
+      alert("Erro ao remover");
+    }
+  }
+
+  async function handleApprove(regId: number) {
+    if (!confirm("Confirmar pagamento manualmente?")) return;
+    try {
+      await api.patch(`/registrations/${regId}`, { paymentStatus: "paid" });
+
+      setRegistrations((prev) =>
+        prev.map((r) => (r.id === regId ? { ...r, paymentStatus: "paid" } : r))
+      );
+      alert("Pagamento confirmado!");
+    } catch (e) {
+      console.error(e);
+      alert("Erro ao atualizar status. Verifique se a rota PATCH existe.");
+    }
+  }
 
   const getStatusBadge = (status: string) => {
     const s = status?.toLowerCase() || "";
@@ -227,14 +254,27 @@ export function ManageTournaments() {
                         </td>
 
                         {/* Ações */}
-                        <td className="p-4 text-right">
+                        <td className="p-4 text-right flex justify-end gap-2">
+                          {!reg.paymentStatus.includes("approved") && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="border-green-800 text-green-500 hover:bg-green-900/30"
+                              onClick={() => handleApprove(reg.id)}
+                              title="Confirmar Pagamento Manualmente"
+                            >
+                              <ShieldCheck className="w-4 h-4" />
+                            </Button>
+                          )}
+
                           <Button
-                            variant="ghost"
                             size="sm"
-                            className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
-                            onClick={() => handleRemoveRegistration(reg.id)}
+                            variant="ghost"
+                            className="text-red-400 hover:bg-red-900/20"
+                            onClick={() => handleRemove(reg.id)}
+                            title="Remover Inscrição"
                           >
-                            Remover
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </td>
                       </tr>

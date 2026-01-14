@@ -9,6 +9,8 @@ import { AdminLayout } from "./components/layout/AdminLayout";
 import { CreateTournament } from "./pages/Admin/CreateTournament";
 import { TournamentsList } from "./pages/Admin/TournamentsList";
 import { ManageTournaments } from "./pages/Admin/ManageTournaments";
+import { EditTournament } from "./pages/Admin/EditTournament";
+import { RegistrationsList } from "./pages/Admin/RegistrationsList";
 
 function App() {
   return (
@@ -27,6 +29,8 @@ function App() {
               <Route path="tournaments/new" element={<CreateTournament />} />
               <Route path="tournaments" element={<TournamentsList />} />
               <Route path="tournaments/:id" element={<ManageTournaments />} />
+              <Route path="tournaments/:id/edit" element={<EditTournament />} />
+              <Route path="registrations" element={<RegistrationsList />} />
             </Route>
             {/* redireciona pra home se der 404*/}
             <Route path="*" element={<Navigate to="/" />} />{" "}

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import api from "../../services/api";
 import { Link } from "react-router-dom";
 import { Button } from "../../components/ui/button";
-import { Calendar, Eye, Plus, Users } from "lucide-react";
+import { Calendar, Eye, Pencil, Plus, Trash2, Users } from "lucide-react";
 
 interface Tournament {
   id: number;
@@ -32,6 +32,24 @@ export function TournamentsList() {
 
     fetchTournaments();
   }, []);
+
+  async function handleDelete(id: number) {
+    if (
+      !confirm(
+        "Tem certeza que deseja EXCLUIR este torneio? Isso apagará todas as inscrições dele."
+      )
+    )
+      return;
+
+    try {
+      await api.delete(`/tournaments/${id}`);
+      setTournaments((prev) => prev.filter((t) => t.id !== id));
+      alert("Torneio excluído.");
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao excluir torneio.");
+    }
+  }
 
   const formatDate = (dateString: string) => {
     if (!dateString) {
@@ -145,16 +163,28 @@ export function TournamentsList() {
                   </td>
 
                   {/* ações */}
-                  <td className="p-4 text-right">
+                  <td className="p-4 text-right flex justify-end gap-2">
                     <Link to={`/admin/tournaments/${t.id}`}>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-slate-700 bg-purple-500 hover:bg-purple-700 text-slate-300 hover:text-white"
-                      >
-                        <Eye className="w-4 h-4" /> Gerenciar
+                      <Button variant="ghost" size="icon" title="Ver Inscritos">
+                        <Users className="w-4 h-4 text-slate-300" />
                       </Button>
                     </Link>
+
+                    <Link to={`/admin/tournaments/${t.id}/edit`}>
+                      <Button variant="ghost" size="icon" title="Editar">
+                        <Pencil className="w-4 h-4 text-blue-400" />
+                      </Button>
+                    </Link>
+
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDelete(t.id)}
+                      title="Excluir"
+                      className="hover:bg-red-900/20"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-500" />
+                    </Button>
                   </td>
                 </tr>
               ))
