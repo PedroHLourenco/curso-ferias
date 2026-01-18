@@ -40,12 +40,15 @@ interface Registration {
 
 interface Match {
   id: number;
-  player1Id: number;
-  player2Id: number;
+  player1Id?: number;
+  player2Id?: number;
+  player1?: { id: number; username: string };
+  player2?: { id: number; username: string };
+
   winnerId: number | null;
-  tournamentId: number;
-  player1?: { username: string };
-  player2?: { username: string };
+  tournamentId?: number;
+  tournament?: { id: number };
+  round: number;
 }
 
 export function ManageTournaments() {
@@ -105,22 +108,42 @@ export function ManageTournaments() {
   async function fetchMatches() {
     try {
       const response = await api.get(`/matches`);
-      const myMatches = response.data.filter(
-        (m: any) => Number(m.tournamentId) === tournamentId
-      );
+      const allMatches = response.data;
+      const myMatches = allMatches.filter((m: any) => {
+        const tId = m.tournamentId || m.tournament?.id;
+        return Number(tId) === tournamentId;
+      });
       setMatches(myMatches);
     } catch (error) {
       console.error("Erro ao buscar partidas");
     }
   }
 
+  function getPlayerData(match: Match, playerNum: 1 | 2) {
+    let pId: number | undefined;
+    if (playerNum === 1) pId = match.player1Id || match.player1?.id;
+    else pId = match.player2Id || match.player2?.id;
+
+    if (!pId) return { id: 0, name: "Desconhecido" };
+
+    const reg = registrations.find((r) => r.user.id === pId);
+    if (reg) return { id: pId, name: reg.user.username };
+
+    if (playerNum === 1 && match.player1?.username)
+      return { id: pId, name: match.player1.username };
+    if (playerNum === 2 && match.player2?.username)
+      return { id: pId, name: match.player2.username };
+
+    return { id: pId, name: `Jogador #${pId}` };
+  }
+
   async function handleCreateMatch() {
     if (!selectedP1 || !selectedP2) {
-      toast.warning("Selecione dois jogadores diferentes");
+      toast.warning("Selecione dois jogadores");
       return;
     }
     if (selectedP1 === selectedP2) {
-      toast.error("O jogador não pode jogar contra si mesmo");
+      toast.error("Jogadores iguais");
       return;
     }
 
@@ -134,12 +157,11 @@ export function ManageTournaments() {
       };
 
       await api.post("/matches", payload);
-
       toast.success("Partida criada!");
       setIsMatchModalOpen(false);
       setSelectedP1("");
       setSelectedP2("");
-      fetchMatches();
+      await fetchMatches();
     } catch (error) {
       console.error(error);
       toast.error("Erro ao criar partida");
@@ -326,8 +348,7 @@ export function ManageTournaments() {
           <div className="flex justify-end">
             <Button
               onClick={() => setIsMatchModalOpen(true)}
-              variant="outline"
-              className="border-purple-700 bg-purple-600 hover:bg-purple-700 hover:text-white text-slate-300"
+              className="bg-purple-600 hover:bg-purple-700 text-white shadow-md"
             >
               <Plus className="w-4 h-4 mr-2" /> Criar Partida
             </Button>
@@ -337,68 +358,79 @@ export function ManageTournaments() {
             {matches.length === 0 ? (
               <div className="text-center py-10 text-slate-500 border border-slate-800 rounded bg-slate-900">
                 <Swords className="mx-auto w-10 h-10 mb-2 opacity-20" />
-                <p>Nenhuma partida criada.</p>
+                <p>Nenhuma partida encontrada.</p>
               </div>
             ) : (
-              matches.map((match) => (
-                <Card key={match.id} className="bg-slate-900 border-slate-800">
-                  <CardContent className="p-4 flex justify-between items-center">
-                    <div
-                      className={`flex-1 p-3 rounded border text-center ${
-                        match.winnerId === match.player1Id
-                          ? "border-green-500 bg-green-500/10 text-green-400"
-                          : "border-slate-800"
-                      }`}
-                    >
-                      <div className="font-bold text-lg">
-                        {match.player1?.username || `ID ${match.player1Id}`}
+              matches.map((match) => {
+                const p1 = getPlayerData(match, 1);
+                const p2 = getPlayerData(match, 2);
+
+                const isP1Winner = match.winnerId && match.winnerId === p1.id;
+                const isP2Winner = match.winnerId && match.winnerId === p2.id;
+
+                return (
+                  <Card
+                    key={match.id}
+                    className={`border-slate-800 bg-slate-900 transition-all ${
+                      match.winnerId ? "opacity-80" : ""
+                    }`}
+                  >
+                    <CardContent className="p-4 flex justify-between items-center gap-4">
+                      {/* player 1 */}
+                      <div
+                        className={`flex-1 p-4 rounded border text-center transition-all ${
+                          isP1Winner
+                            ? "border-green-500/50 bg-green-500/10 text-green-400 font-bold shadow-[0_0_15px_rgba(74,222,128,0.1)]"
+                            : "border-slate-800 text-slate-400"
+                        }`}
+                      >
+                        <div className="text-lg truncate">{p1.name}</div>
+
+                        {!match.winnerId && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="mt-2 text-xs h-7 text-slate-500 hover:text-green-400 hover:bg-green-500/10 w-full"
+                            onClick={() => handleSetWinner(match.id, p1.id)}
+                          >
+                            Vencedor
+                          </Button>
+                        )}
                       </div>
-                      {!match.winnerId && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="mt-2 text-xs h-7"
-                          onClick={() =>
-                            handleSetWinner(match.id, match.player1Id)
-                          }
-                        >
-                          Vencedor
-                        </Button>
-                      )}
-                    </div>
-                    <div className="px-4 font-bold text-slate-600">VS</div>
-                    <div
-                      className={`flex-1 p-3 rounded border text-center ${
-                        match.winnerId === match.player2Id
-                          ? "border-green-500 bg-green-500/10 text-green-400"
-                          : "border-slate-800"
-                      }`}
-                    >
-                      <div className="font-bold text-lg">
-                        {match.player2?.username || `ID ${match.player2Id}`}
+
+                      <div className="font-bold text-slate-700 text-xl">VS</div>
+
+                      {/* player 2 */}
+                      <div
+                        className={`flex-1 p-4 rounded border text-center transition-all ${
+                          isP2Winner
+                            ? "border-green-500/50 bg-green-500/10 text-green-400 font-bold shadow-[0_0_15px_rgba(74,222,128,0.1)]"
+                            : "border-slate-800 text-slate-400"
+                        }`}
+                      >
+                        <div className="text-lg truncate">{p2.name}</div>
+
+                        {!match.winnerId && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="mt-2 text-xs h-7 text-slate-500 hover:text-green-400 hover:bg-green-500/10 w-full"
+                            onClick={() => handleSetWinner(match.id, p2.id)}
+                          >
+                            Vencedor
+                          </Button>
+                        )}
                       </div>
-                      {!match.winnerId && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="mt-2 text-xs h-7"
-                          onClick={() =>
-                            handleSetWinner(match.id, match.player2Id)
-                          }
-                        >
-                          Vencedor
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+                    </CardContent>
+                  </Card>
+                );
+              })
             )}
           </div>
         </div>
       )}
 
-      {/* MODAL DE CRIAR PARTIDA */}
+      {/* modal de partida */}
       <Dialog open={isMatchModalOpen} onOpenChange={setIsMatchModalOpen}>
         <DialogContent className="bg-slate-900 border-slate-800 text-white">
           <DialogHeader>
@@ -428,7 +460,11 @@ export function ManageTournaments() {
                 </SelectTrigger>
                 <SelectContent className="bg-slate-900 border-slate-700 text-white">
                   {registrations.map((r) => (
-                    <SelectItem key={r.user.id} value={String(r.user.id)}>
+                    <SelectItem
+                      key={r.user.id}
+                      value={String(r.user.id)}
+                      disabled={String(r.user.id) === selectedP1}
+                    >
                       {r.user.username}
                     </SelectItem>
                   ))}
