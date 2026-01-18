@@ -5,7 +5,7 @@ import axios from 'axios';
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
-  private readonly mercadoPagoUrl = ' https://api.mercadopago.com/v1/payments';
+  private readonly mercadoPagoUrl = 'https://api.mercadopago.com/v1/payments';
 
   constructor(private configService: ConfigService) {}
 
