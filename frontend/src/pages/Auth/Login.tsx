@@ -45,7 +45,7 @@ export function Login() {
       if (decoded.role === "admin") {
         navigate("/admin");
       } else {
-        navigate("/");
+        navigate("/home");
       }
     } catch (error) {
       setError("Email ou senha inválidos");

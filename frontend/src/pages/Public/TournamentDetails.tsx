@@ -94,7 +94,7 @@ export function TournamentDetails() {
         duration: 4000,
       });
 
-      navigate("/login"); // se não estiver logado, manda de volta pro login
+      navigate("/"); // se não estiver logado, manda de volta pro login
       return;
     }
 
@@ -114,7 +114,7 @@ export function TournamentDetails() {
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-100">
         <h2 className="text-2xl font-bold mb-4">Torneio não encontrado</h2>
 
-        <Link to="/">
+        <Link to="/home">
           <Button variant="outline">Voltar para a Home</Button>
         </Link>
       </div>
@@ -125,7 +125,7 @@ export function TournamentDetails() {
     <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-12">
       <div className="max-w-5xl mx-auto">
         <Link
-          to="/"
+          to="/home"
           className="inline-flex items-center text-slate-400 mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />

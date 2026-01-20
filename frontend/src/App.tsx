@@ -21,9 +21,9 @@ function App() {
         <div className="min-h-screen bg-slate-950 text-slate-100">
           <Routes>
             {/* rotas públicas */}
-            <Route path="/login" element={<Login />} />
+            <Route path="/" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/" element={<Home />} />
+            <Route path="/home" element={<Home />} />
             <Route path="/tournament/:id" element={<TournamentDetails />} />
             {/* rotas admin */}
             <Route path="/admin" element={<AdminLayout />}>

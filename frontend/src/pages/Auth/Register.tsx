@@ -192,7 +192,7 @@ export function Register() {
             <div className="text-sm text-center text-slate-400">
               Já possui uma conta?{" "}
               <Link
-                to="/login"
+                to="/"
                 className="text-purple-400 hover:text-purple-300 hover:underline"
               >
                 Fazer Login
