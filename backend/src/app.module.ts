@@ -18,6 +18,7 @@ import { EventsModule } from './events/events.module';
 
     TypeOrmModule.forRoot({
       type: 'postgres',
+      url: process.env.DATABASE_URL,
       host: process.env.DB_HOST,
       port: Number(process.env.DB_PORT),
       username: process.env.DB_USERNAME,
@@ -25,6 +26,7 @@ import { EventsModule } from './events/events.module';
       database: process.env.DB_NAME,
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: false,
+      ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
     }),
 
     AuthModule,
