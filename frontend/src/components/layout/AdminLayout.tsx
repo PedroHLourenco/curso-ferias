@@ -26,9 +26,9 @@ export function AdminLayout() {
       : "text-slate-400 hover:bg-slate-800 hover:text-white";
 
   return (
-    <div className="flex h-screen bg-slate-950 text-slate-100 font-sans">
+    <div className="flex flex-col md:flex-row h-screen bg-slate-950 text-slate-100 font-sans">
       {/* sidebar */}
-      <aside className="w-64 border-r border-slate-800 flex flex-col bg-slate-950">
+      <aside className="w-full md:w-64 h-auto md:h-full border-b md:border-b-0 md:border-r border-slate-800 flex flex-col bg-slate-950 shrink-0">
         <div className="p-6 border-b border-slate-800 flex items-center gap-2">
           <Trophy className="w-6 h-6 text-purple-500" />
           <span className="font-bold text-lg tracking-tight">
@@ -40,7 +40,7 @@ export function AdminLayout() {
           <Link
             to="/admin"
             className={`flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${isActive(
-              "/admin"
+              "/admin",
             )}`}
           >
             <LayoutDashboard className="h-5 w-5" />
@@ -50,7 +50,7 @@ export function AdminLayout() {
           <Link
             to="/admin/tournaments"
             className={`flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${isActive(
-              "/admin/tournaments"
+              "/admin/tournaments",
             )}`}
           >
             <Trophy className="w-5 h-5" />
@@ -60,7 +60,7 @@ export function AdminLayout() {
           <Link
             to="/admin/registrations"
             className={`flex items-center gap-3 px-4 py-3 rounded-md transition-colors ${isActive(
-              "/admin/registrations"
+              "/admin/registrations",
             )}`}
           >
             <Users className="w-5 h-5" />
@@ -85,7 +85,7 @@ export function AdminLayout() {
       </aside>
 
       {/* área principal */}
-      <main className="flex-1 overflow-y-auto bg-slate-950 p-8">
+      <main className="flex-1 overflow-y-auto bg-slate-950 p-4 md:p-8">
         <Outlet />
       </main>
     </div>
