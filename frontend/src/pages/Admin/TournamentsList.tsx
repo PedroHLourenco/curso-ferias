@@ -37,7 +37,7 @@ export function TournamentsList() {
   async function handleDelete(id: number) {
     if (
       !confirm(
-        "Tem certeza que deseja EXCLUIR este torneio? Isso apagará todas as inscrições dele."
+        "Tem certeza que deseja EXCLUIR este torneio? Isso apagará todas as inscrições dele.",
       )
     )
       return;
@@ -101,103 +101,101 @@ export function TournamentsList() {
       </div>
 
       <div className="bg-slate-900 border border-slate-800 rounded-lg overflow-hidden">
-        <table className="w-full text-left text-sm text-slate-400">
-          <thead className="bg-slate-950 text-slate-200 uppercase font-bold text-xs">
-            <tr>
-              <th className="p-4">ID</th>
-              <th className="p-4">Evento</th>
-              <th className="p-4">Data</th>
-              <th className="p-4">Capacidade</th>
-              <th className="p-4">Status</th>
-              <th className="p-4">Ações</th>
-            </tr>
-          </thead>
-
-          <tbody className="divide-y divide-slate-800">
-            {loading ? (
+        <div className="overflow-x-auto w-full">
+          <table className="w-full min-w-[800px] text-left text-sm text-slate-400">
+            <thead className="bg-slate-950 text-slate-200 uppercase font-bold text-xs">
               <tr>
-                <td colSpan={6} className="p-8 text-center">
-                  Carregando...
-                </td>
+                <th className="p-4">ID</th>
+                <th className="p-4">Evento</th>
+                <th className="p-4">Data</th>
+                <th className="p-4">Capacidade</th>
+                <th className="p-4">Status</th>
+                <th className="p-4">Ações</th>
               </tr>
-            ) : tournaments.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="p-8 text-center text-slate-500">
-                  Nenhum torneio encontrado
-                </td>
-              </tr>
-            ) : (
-              tournaments.map((t) => (
-                <tr
-                  key={t.id}
-                  className="hover:bg-slate-800/50 transition-colors"
-                >
-                  <td className="p-4 font-mono text-slate-500">#{t.id}</td>
-
-                  {/* evento */}
-                  <td className="p-4">
-                    <div className="font-medium text-white">
-                      {t.tournamentName}
-                    </div>
-                    <div className="text-xs text-slate-500">{t.format}</div>
-                  </td>
-
-                  {/* formato */}
-                  <td className="p-4">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-purple-500" />
-                      {formatDate(t.tournamentDate)}
-                    </div>
-                  </td>
-
-                  {/* vagas */}
-                  <td className="p-4">
-                    <div className="flex items-center gap-2 text-slate-300">
-                      <Users className="w-4 h-4" />
-                      {t.maxPlayers} Vagas
-                    </div>
-                  </td>
-
-                  {/* status */}
-                  <td className="p-4">
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-bold border ${getStatusColor(
-                        t.tournamentStatus
-                      )} uppercase`}
-                    >
-                      {t.tournamentStatus}
-                    </span>
-                  </td>
-
-                  {/* ações */}
-                  <td className="p-4 text-right flex justify-end gap-2">
-                    <Link to={`/admin/tournaments/${t.id}`}>
-                      <Button variant="ghost" size="icon" title="Ver Inscritos">
-                        <Users className="w-4 h-4 text-slate-300" />
-                      </Button>
-                    </Link>
-
-                    <Link to={`/admin/tournaments/${t.id}/edit`}>
-                      <Button variant="ghost" size="icon" title="Editar">
-                        <Pencil className="w-4 h-4 text-blue-400" />
-                      </Button>
-                    </Link>
-
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(t.id)}
-                      title="Excluir"
-                      className="hover:bg-red-900/20"
-                    >
-                      <Trash2 className="w-4 h-4 text-red-500" />
-                    </Button>
+            </thead>
+            <tbody className="divide-y divide-slate-800">
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center">
+                    Carregando...
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : tournaments.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-8 text-center text-slate-500">
+                    Nenhum torneio encontrado
+                  </td>
+                </tr>
+              ) : (
+                tournaments.map((t) => (
+                  <tr
+                    key={t.id}
+                    className="hover:bg-slate-800/50 transition-colors"
+                  >
+                    <td className="p-4 font-mono text-slate-500">#{t.id}</td>
+                    {/* evento */}
+                    <td className="p-4">
+                      <div className="font-medium text-white">
+                        {t.tournamentName}
+                      </div>
+                      <div className="text-xs text-slate-500">{t.format}</div>
+                    </td>
+                    {/* formato */}
+                    <td className="p-4">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-purple-500" />
+                        {formatDate(t.tournamentDate)}
+                      </div>
+                    </td>
+                    {/* vagas */}
+                    <td className="p-4">
+                      <div className="flex items-center gap-2 text-slate-300">
+                        <Users className="w-4 h-4" />
+                        {t.maxPlayers} Vagas
+                      </div>
+                    </td>
+                    {/* status */}
+                    <td className="p-4">
+                      <span
+                        className={`px-2 py-1 rounded text-xs font-bold border ${getStatusColor(
+                          t.tournamentStatus,
+                        )} uppercase`}
+                      >
+                        {t.tournamentStatus}
+                      </span>
+                    </td>
+                    {/* ações */}
+                    <td className="p-4 text-right flex justify-end gap-2">
+                      <Link to={`/admin/tournaments/${t.id}`}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          title="Ver Inscritos"
+                        >
+                          <Users className="w-4 h-4 text-slate-300" />
+                        </Button>
+                      </Link>
+                      <Link to={`/admin/tournaments/${t.id}/edit`}>
+                        <Button variant="ghost" size="icon" title="Editar">
+                          <Pencil className="w-4 h-4 text-blue-400" />
+                        </Button>
+                      </Link>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(t.id)}
+                        title="Excluir"
+                        className="hover:bg-red-900/20"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
