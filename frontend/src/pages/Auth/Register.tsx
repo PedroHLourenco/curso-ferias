@@ -58,7 +58,7 @@ export function Register() {
       const decoded: any = jwtDecode(access_token);
 
       if (decoded.role === "admin") {
-        navigate("/dashboard");
+        navigate("/admin");
       } else {
         navigate("/home");
       }
